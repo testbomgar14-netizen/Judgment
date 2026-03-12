@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Kachuful Scoreboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{min-height:100%;background:var(--bg);font-family:Georgia,serif;color:var(--text);}
+body::before{content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse at 20% 10%,var(--glow1) 0%,transparent 55%),
+             radial-gradient(ellipse at 80% 80%,var(--glow2) 0%,transparent 55%);
+  pointer-events:none;z-index:0;}
+#app{position:relative;z-index:1;min-height:100vh;}
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;}
+input[type=number]{-moz-appearance:textfield;}
+input:focus{outline:none;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+
+/* Screens */
+.screen{display:none;padding:20px 14px 50px;max-width:680px;margin:0 auto;}
+.screen.active{display:block;}
+
+/* Typography */
+.logo{text-align:center;margin-bottom:28px;}
+.logo h1{font-size:46px;letter-spacing:8px;font-weight:900;color:var(--logo-col);line-height:1.1;}
+.logo p{color:var(--logo-sub);letter-spacing:4px;font-size:11px;margin-top:6px;}
+.suits{display:flex;justify-content:center;gap:16px;font-size:20px;color:var(--suit-col);opacity:.8;margin-bottom:10px;}
+
+/* Glass cards */
+.glass{background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:16px;margin-bottom:14px;}
+.section-label{font-size:10px;font-weight:700;letter-spacing:3px;
+  color:var(--section-lbl);text-transform:uppercase;margin-bottom:10px;}
+
+/* Buttons */
+.btn-gold{width:100%;padding:15px;border-radius:10px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,#b8862a,#e8c96a,#b8862a);
+  color:#fff;font-size:16px;font-weight:700;letter-spacing:2px;
+  font-family:Georgia,serif;box-shadow:0 4px 24px rgba(201,168,76,.3);}
+.btn-gold:disabled{background:var(--surface2);color:var(--text3);
+  cursor:not-allowed;box-shadow:none;}
+.btn-blue{background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;
+  box-shadow:0 4px 20px rgba(59,130,246,.4);}
+.btn-outline{padding:7px 13px;border-radius:6px;border:1px solid var(--accent-border);
+  background:var(--accent-dim);color:var(--accent);cursor:pointer;
+  font-size:11px;font-weight:700;letter-spacing:1px;font-family:Georgia,serif;}
+.btn-outline.red{border-color:var(--red-border);color:var(--red-col);background:var(--red-bg);}
+.btn-circ{width:32px;height:32px;border-radius:50%;background:var(--circ-bg);
+  border:1px solid var(--circ-border);color:var(--circ-text);
+  cursor:pointer;font-size:20px;font-weight:700;font-family:Georgia,serif;
+  display:inline-flex;align-items:center;justify-content:center;line-height:1;}
+
+/* Inputs */
+.text-input{width:100%;background:var(--input-bg);border:1px solid var(--input-border);
+  border-radius:8px;padding:10px 14px;color:var(--input-text);font-size:15px;font-family:Georgia,serif;}
+.num-input{width:100%;padding:9px 4px;border-radius:8px;font-size:28px;font-weight:700;
+  text-align:center;font-family:Georgia,serif;transition:all .25s;}
+.num-input.active-bid{background:rgba(56,189,248,.08);border:2px solid rgba(56,189,248,.5);color:#e0f2fe;}
+.num-input.locked-bid{background:rgba(255,255,255,.02);border:2px solid rgba(56,189,248,.15);color:rgba(125,211,252,.5);}
+.num-input.active-won{background:rgba(74,222,128,.08);border:2px solid rgba(74,222,128,.5);color:#dcfce7;}
+.num-input.locked-won{background:rgba(255,255,255,.02);border:2px solid rgba(255,255,255,.06);color:rgba(255,255,255,.15);}
+
+/* Round pills */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 11px;
+  border-radius:20px;font-size:12px;font-weight:600;border:1px solid;}
+.pill.lg{padding:9px 20px;font-size:19px;border-radius:10px;gap:8px;}
+.pill-num{opacity:.5;font-size:9px;font-weight:700;letter-spacing:1px;}
+.pill.lg .pill-num{font-size:12px;}
+
+/* Sticky header */
+.sticky-header{position:sticky;top:0;z-index:50;background:var(--header-bg);
+  border-bottom:1px solid var(--header-border);
+  padding:10px 16px;display:flex;justify-content:space-between;align-items:center;}
+.sticky-header h1{font-size:20px;letter-spacing:4px;font-weight:900;color:var(--logo-col);}
+.sticky-header p{color:var(--text2);font-size:11px;letter-spacing:2px;margin-top:1px;}
+.hdr-btns{display:flex;gap:8px;align-items:center;}
+
+/* Round banner */
+.round-banner{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid;}
+
+/* Progress */
+.progress-row{background:var(--prog-bg);padding:8px 16px;
+  display:flex;gap:5px;align-items:center;border-bottom:1px solid var(--border2);}
+.prog-dot{flex:1;height:6px;border-radius:3px;transition:all .3s;}
+
+/* Standings strip */
+.standings{display:flex;gap:0;overflow-x:auto;padding-bottom:4px;}
+.standing-item{min-width:72px;flex:0 0 auto;text-align:center;padding:6px 8px;
+  border-right:1px solid var(--sdiv);position:relative;}
+.standing-bar{width:20px;height:4px;border-radius:2px;margin:0 auto 5px;}
+.standing-name{font-size:11px;color:var(--sname);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:64px;margin:0 auto;}
+.standing-pts{font-size:22px;font-weight:700;color:var(--spts);line-height:1.2;}
+.standing-pts.leader{color:var(--accent);}
+
+/* Bid tracker */
+.bid-tracker{padding:16px 20px;margin-bottom:12px;
+  background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.25);border-radius:14px;}
+.bid-tracker-row{display:flex;justify-content:space-between;align-items:center;}
+.bid-total-num{font-size:54px;font-weight:700;color:var(--text);line-height:1;}
+.bid-tracker-label{font-size:10px;font-weight:700;letter-spacing:3px;
+  color:rgba(125,211,252,.8);margin-bottom:6px;}
+.bid-tracker-sub{color:rgba(125,211,252,.7);font-size:14px;margin-top:4px;}
+.tricks-label{font-size:10px;color:rgba(255,255,255,.25);letter-spacing:2px;margin-bottom:4px;text-align:right;}
+.tricks-num{font-size:36px;color:rgba(255,255,255,.35);font-weight:700;text-align:right;}
+
+
+/* Phase pill theme-aware */
+.phase-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;
+  border-radius:8px;font-size:13px;font-weight:600;letter-spacing:.5px;margin-bottom:14px;
+  border:1px solid transparent;}
+.phase-pill.phase-bid{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.35);color:#7dd3fc;}
+.phase-pill.phase-won{background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.35);color:#86efac;}
+.phase-dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.phase-dot.phase-dot-bid{background:#38bdf8;box-shadow:0 0 6px #38bdf8;}
+.phase-dot.phase-dot-won{background:#4ade80;box-shadow:0 0 6px #4ade80;}
+
+/* Save bids button — ready state (class-based, no inline style) */
+.btn-save-ready{
+  background:linear-gradient(135deg,#1d4ed8,#3b82f6) !important;
+  box-shadow:0 4px 20px rgba(59,130,246,.4) !important;
+  color:#fff !important;
+}
+
+/* Dark theme overrides for phase pill */
+  background:linear-gradient(135deg,#8a5e10,#c9a84c,#8a5e10) !important;
+  box-shadow:0 4px 20px rgba(201,168,76,.35) !important;
+  color:#0a0a0a !important;
+}
+
+/* Light theme overrides for phase pill */
+[data-theme="light"] .phase-pill.phase-bid{background:#eff6ff;border-color:#3b82f6;color:#1d4ed8;}
+[data-theme="light"] .phase-pill.phase-won{background:#f0fdf4;border-color:#16a34a;color:#15803d;}
+[data-theme="light"] .phase-dot.phase-dot-bid{background:#3b82f6;box-shadow:0 0 5px rgba(59,130,246,.5);}
+[data-theme="light"] .phase-dot.phase-dot-won{background:#16a34a;box-shadow:0 0 5px rgba(22,163,74,.5);}
+
+
+/* Player grid */
+.player-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px;margin-bottom:16px;}
+.player-card{border-radius:12px;overflow:hidden;background:var(--surface);
+  border:1px solid var(--border);box-shadow:0 4px 20px rgba(0,0,0,.2);}
+.player-card.won-correct{border-color:rgba(74,222,128,.4);}
+.player-card.won-wrong{border-color:rgba(248,113,113,.3);}
+.card-header{padding:9px 12px;display:flex;justify-content:space-between;align-items:center;}
+.card-name{color:var(--text);font-weight:700;font-size:14px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:72%;}
+.card-pts{background:rgba(0,0,0,.25);color:rgba(255,255,255,.9);
+  font-size:12px;padding:2px 8px;border-radius:10px;font-weight:700;flex-shrink:0;}
+.card-body{padding:12px 10px;}
+.input-label{display:block;font-size:9px;font-weight:700;letter-spacing:2.5px;margin-bottom:5px;}
+.input-label.bid-active{color:#7dd3fc;}
+.input-label.bid-locked{color:rgba(255,255,255,.2);}
+.input-label.won-active{color:#86efac;}
+.input-label.won-locked{color:rgba(255,255,255,.18);}
+.card-result{padding:9px;text-align:center;font-size:18px;font-weight:700;
+  border-top:1px solid var(--border2);transition:all .3s;}
+.result-pending{background:var(--res-pend-bg);color:var(--res-pend-col);}
+.result-correct{background:rgba(74,222,128,.1);color:#4ade80;}
+.result-wrong{background:rgba(248,113,113,.1);color:#f87171;}
+
+/* History table */
+.history-scroll{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th{padding:10px 12px;font-size:11px;letter-spacing:2px;font-weight:700;
+  border-bottom:1px solid var(--border);text-align:center;white-space:nowrap;
+  color:var(--th-col);}
+td{padding:10px 12px;text-align:center;border-bottom:1px solid var(--border2);}
+.td-round{text-align:left;padding-left:4px;}
+.total-row td{background:var(--total-row);border-top:1px solid var(--total-border);}
+.total-label{color:var(--accent);font-weight:700;letter-spacing:2px;font-size:11px;}
+.total-pts{font-size:24px;font-weight:700;color:var(--accent);}
+.score-green{color:#4ade80;font-weight:700;}
+.score-red{color:#f87171;font-weight:700;}
+.score-sub{display:block;font-size:10px;color:var(--score-sub);font-weight:400;}
+
+/* Final screen */
+.final-rank{display:flex;align-items:center;gap:14px;padding:13px 16px;
+  border-radius:10px;margin-bottom:8px;border:1px solid var(--rank-border);
+  background:var(--rank-bg);}
+.final-rank.first{background:var(--win-bg);border-color:var(--win-border);}
+.rank-medal{font-size:22px;width:30px;text-align:center;}
+.rank-bar{width:4px;height:36px;border-radius:2px;flex-shrink:0;}
+.rank-name{flex:1;font-size:16px;font-weight:600;color:var(--rank-name);}
+.rank-pts{font-size:28px;font-weight:700;}
+.rank-pts.gold{color:#c9a84c;}
+.rank-pts.silver{color:var(--rank-silver);}
+.rank-unit{color:var(--rank-unit);font-size:12px;}
+
+/* Modal overlay */
+.modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);
+  display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+.modal-box{background:var(--modal-bg);border:1px solid var(--red-border);border-radius:16px;
+  padding:36px 26px;max-width:340px;width:90%;text-align:center;
+  box-shadow:0 0 80px rgba(248,113,113,.15),0 30px 60px rgba(0,0,0,.6);}
+.modal-icon{font-size:44px;margin-bottom:10px;}
+.modal-title{font-size:22px;color:var(--modal-title);letter-spacing:1px;margin-bottom:10px;}
+.modal-text{color:var(--modal-text);font-size:15px;line-height:1.7;margin-bottom:24px;}
+.btn-danger{width:100%;padding:14px;border-radius:8px;background:linear-gradient(135deg,#991b1b,#dc2626);
+  border:none;color:#fff;cursor:pointer;font-size:14px;font-weight:700;
+  font-family:Georgia,serif;letter-spacing:2px;margin-bottom:10px;
+  box-shadow:0 4px 20px rgba(220,38,38,.4);}
+.btn-cancel{width:100%;padding:12px;border-radius:8px;background:var(--cancel-bg);
+  border:1px solid var(--cancel-border);color:var(--cancel-col);cursor:pointer;
+  font-size:13px;font-family:Georgia,serif;}
+.modal-hint{margin-top:12px;color:var(--modal-hint);font-size:12px;}
+
+/* Divider */
+.divider{display:flex;align-items:center;gap:10px;margin:16px 0;}
+.divider-line{flex:1;height:1px;background:var(--divider);}
+.divider-star{color:var(--accent);opacity:.35;font-size:11px;}
+
+/* Credit */
+.credit{text-align:center;color:var(--text2);font-size:12px;margin-top:6px;}
+.credit strong{color:var(--accent);}
+.credit-copy{text-align:center;color:var(--text3);font-size:10px;margin-top:4px;}
+
+/* Player setup row */
+.player-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.player-strip{width:4px;height:36px;border-radius:2px;flex-shrink:0;}
+
+/* Round order preview */
+.round-preview{display:flex;flex-wrap:wrap;gap:6px;}
+
+/* Count row */
+.count-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.count-ctrl{display:flex;align-items:center;gap:10px;}
+.count-num{font-size:24px;font-weight:700;color:var(--accent);min-width:28px;text-align:center;}
+
+/* ════ CSS THEME VARIABLES ════ */
+/* AUTO = original navy/gold */
+:root{
+  --bg:#0d0d1a; --surface:rgba(255,255,255,.04); --surface2:rgba(255,255,255,.03);
+  --border:rgba(255,255,255,.09); --border2:rgba(255,255,255,.05);
+  --text:#f0ece0; --text2:rgba(240,236,224,.55); --text3:rgba(240,236,224,.28);
+  --accent:#c9a84c; --accent-dim:rgba(201,168,76,.1); --accent-border:rgba(201,168,76,.3);
+  --header-bg:rgba(10,10,22,.97); --header-border:rgba(255,255,255,.07);
+  --input-bg:rgba(255,255,255,.05); --input-border:rgba(255,255,255,.14); --input-text:#f0ece0;
+  --circ-bg:rgba(255,255,255,.07); --circ-border:rgba(255,255,255,.14); --circ-text:rgba(255,255,255,.8);
+  --modal-bg:#0e0820;
+  --section-lbl:rgba(201,168,76,.75);
+  --sname:rgba(255,255,255,.5); --spts:#fff; --sdiv:rgba(255,255,255,.05);
+  --prog-bg:rgba(255,255,255,.03);
+  --total-row:rgba(201,168,76,.07); --total-border:rgba(201,168,76,.25);
+  --th-col:rgba(201,168,76,.65); --table-alt:rgba(255,255,255,.02);
+  --divider:rgba(255,255,255,.07);
+  --logo-col:#e8c96a; --logo-sub:rgba(201,168,76,.5); --suit-col:#c9a84c;
+  --rules-bg:#0e0820;
+  --res-pend-bg:rgba(255,255,255,.03); --res-pend-col:rgba(255,255,255,.2);
+  --rank-bg:rgba(255,255,255,.03); --rank-border:rgba(255,255,255,.07);
+  --win-bg:rgba(201,168,76,.1); --win-border:rgba(201,168,76,.4);
+  --rank-name:#eee; --rank-silver:rgba(255,255,255,.7); --rank-unit:rgba(255,255,255,.3);
+  --score-sub:rgba(255,255,255,.3);
+  --cancel-bg:rgba(255,255,255,.05); --cancel-border:rgba(255,255,255,.12); --cancel-col:rgba(255,255,255,.6);
+  --fab-bg:rgba(201,168,76,.12); --fab-border:rgba(201,168,76,.45); --fab-col:#e8c96a;
+  --menu-bg:#100c22; --menu-border:rgba(201,168,76,.25); --menu-hover:rgba(201,168,76,.07);
+  --red-border:rgba(248,113,113,.32); --red-col:#fca5a5; --red-bg:rgba(248,113,113,.07);
+  --glow1:rgba(90,60,140,.35); --glow2:rgba(60,30,100,.3);
+  --modal-hint:rgba(255,255,255,.22);
+  --modal-text:rgba(255,255,255,.5);
+  --modal-title:#fca5a5;
+}
+
+
+/* LIGHT theme — clean white / navy blue */
+[data-theme="light"]{
+  --bg:#eef2fa; --surface:#ffffff; --surface2:#f6f8fe;
+  --border:#d0d8ee; --border2:#dce4f4;
+  --text:#0f1420; --text2:#384060; --text3:#606888;
+  --accent:#1e4ecf; --accent-dim:rgba(30,78,207,.07); --accent-border:rgba(30,78,207,.28);
+  --header-bg:#1e4ecf; --header-border:#1840b8;
+  --input-bg:#f0f4fc; --input-border:#bfcce8; --input-text:#1a2040;
+  --circ-bg:#e4eaf8; --circ-border:#bfcce8; --circ-text:#3a4870;
+  --modal-bg:#ffffff;
+  --section-lbl:#1540b0;
+  --sname:#4a5678; --spts:#1a2040; --sdiv:#d8e0f0;
+  --prog-bg:#e8eef8;
+  --total-row:rgba(30,78,207,.05); --total-border:rgba(30,78,207,.2);
+  --th-col:#1540b0; --table-alt:#f6f8fe;
+  --divider:#d0d8ee;
+  --logo-col:#1e4ecf; --logo-sub:rgba(30,78,207,.6); --suit-col:#1e4ecf;
+  --rules-bg:#ffffff;
+  --res-pend-bg:#f0f4fc; --res-pend-col:#9aa0c0;
+  --rank-bg:#ffffff; --rank-border:#d0d8ee;
+  --win-bg:#eef2ff; --win-border:rgba(30,78,207,.25);
+  --rank-name:#0f1420; --rank-silver:#4060b8; --rank-unit:#606888;
+  --score-sub:#5a6280;
+  --cancel-bg:#f0f4fc; --cancel-border:#d0d8ee; --cancel-col:#6070a0;
+  --fab-bg:#1e4ecf; --fab-border:#1540b0; --fab-col:#ffffff;
+  --menu-bg:#ffffff; --menu-border:#d0d8ee; --menu-hover:#f0f4fc;
+  --red-border:rgba(220,38,38,.28); --red-col:#dc2626; --red-bg:rgba(220,38,38,.06);
+  --glow1:rgba(190,210,250,.55); --glow2:rgba(170,200,245,.4);
+  --modal-hint:#9aa0c0; --modal-text:#6070a0; --modal-title:#dc2626;
+}
+[data-theme="light"] .score-green{color:#15803d;}
+[data-theme="light"] .score-sub{color:#5a6280;}
+[data-theme="light"] td{color:#1a2040;}
+[data-theme="light"] .score-red{color:#dc2626;}
+[data-theme="light"] .result-correct{background:#f0fdf4;color:#16a34a;}
+[data-theme="light"] .result-wrong{background:#fef2f2;color:#dc2626;}
+[data-theme="light"] .result-pending{background:var(--res-pend-bg);color:var(--res-pend-col);}
+[data-theme="light"] .num-input.active-bid{background:#eff6ff;border:2px solid #3b82f6;color:#1e40af;}
+[data-theme="light"] .num-input.locked-bid{background:#f0f6ff;border:2px solid #bfdbfe;color:#4080d0;}
+[data-theme="light"] .num-input.active-won{background:#f0fdf4;border:2px solid #16a34a;color:#166534;}
+[data-theme="light"] .num-input.locked-won{background:#f4f6fb;border:2px solid #dce4f4;color:#b0b8d0;}
+[data-theme="light"] .btn-gold{background:linear-gradient(135deg,#1840b8,#1e4ecf,#2060e0);color:#fff;}
+[data-theme="light"] .btn-gold:disabled{background:#e4eaf8;color:#9aa0c0;}
+[data-theme="light"] .score-pill{background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.35);color:#15803d;}
+[data-theme="light"] .score-pill.red{background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.28);color:#dc2626;}
+[data-theme="light"] .bid-tracker{background:rgba(30,78,207,.06);border-color:rgba(30,78,207,.25);}
+[data-theme="light"] .bid-total-num{color:#1a2040;}
+[data-theme="light"] .bid-tracker-label{color:rgba(30,78,207,.85);}
+[data-theme="light"] .bid-tracker-sub{color:rgba(30,78,207,.7);}
+[data-theme="light"] .tricks-label{color:rgba(26,32,64,.4);}
+[data-theme="light"] .tricks-num{color:rgba(26,32,64,.3);}
+[data-theme="light"] .player-card.won-correct{border-color:rgba(22,163,74,.45);}
+[data-theme="light"] .player-card.won-wrong{border-color:rgba(220,38,38,.35);}
+[data-theme="light"] .total-pts{color:#1e4ecf;}
+[data-theme="light"] .total-label{color:#1e4ecf;}
+[data-theme="light"] .standing-pts.leader{color:#1e4ecf;}
+[data-theme="light"] .rank-pts.gold{color:#1e4ecf;}
+[data-theme="light"] .modal-title{color:#dc2626;}
+[data-theme="light"] .sticky-header h1{color:#fff;}
+[data-theme="light"] .sticky-header p{color:rgba(255,255,255,.8);}
+[data-theme="light"] .modal-text{color:#384060;}
+[data-theme="light"] .section-label{color:#1540b0;}
+[data-theme="light"] .card-name{color:#0f1420;}
+[data-theme="light"] .standing-name{color:#4a5678;}
+[data-theme="light"] .input-label.bid-active{color:#1d4ed8;}
+[data-theme="light"] .input-label.won-active{color:#166534;}
+[data-theme="light"] .input-label.bid-locked{color:#7090c0;}
+[data-theme="light"] .input-label.won-locked{color:#7090c0;}
+[data-theme="light"] table tr:nth-child(even){background:#f6f8fe;}
+[data-theme="light"] .final-rank.first{background:#eef2ff;border-color:rgba(30,78,207,.25);}
+[data-theme="light"] .rank-pts.silver{color:#4060b8;}
+[data-theme="light"] .rules-bullet{color:#1e4ecf;}
+
+/* ════ THEME FAB (fixed top-right, all screens) ════ */
+#theme-fab{position:fixed;top:14px;right:14px;z-index:600;}
+#theme-fab-btn{
+  padding:8px 15px;border-radius:22px;
+  border:1px solid var(--fab-border);
+  background:var(--fab-bg);
+  color:var(--fab-col);
+  cursor:pointer;font-size:11px;font-weight:700;letter-spacing:1.5px;
+  font-family:Georgia,serif;
+  display:flex;align-items:center;gap:5px;
+  box-shadow:0 2px 16px rgba(0,0,0,.25);
+}
+#theme-fab-menu{
+  position:absolute;right:0;top:calc(100% + 8px);
+  background:var(--menu-bg);
+  border:1px solid var(--menu-border);
+  border-radius:12px;overflow:hidden;
+  min-width:140px;
+  box-shadow:0 8px 30px rgba(0,0,0,.3);
+  display:none;
+}
+#theme-fab-menu.open{display:block;}
+.tfm-item{
+  display:flex;align-items:center;gap:11px;
+  padding:12px 14px;cursor:pointer;
+  font-size:14px;font-weight:600;font-family:Georgia,serif;
+  color:var(--text);
+  border-bottom:1px solid var(--border2);
+  transition:background .12s;
+}
+.tfm-item:last-child{border-bottom:none;}
+.tfm-item:hover{background:var(--menu-hover);}
+.tfm-item.active{color:var(--accent);}
+.tfm-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0;border:1px solid rgba(128,128,128,.2);}
+.tfm-check{font-size:13px;margin-left:auto;opacity:0;}
+.tfm-item.active .tfm-check{opacity:1;}
+
+
+.rules-overlay{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.85);
+  display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px;}
+.rules-box{background:var(--rules-bg);border:1px solid var(--accent-border);border-radius:16px;
+  padding:28px 22px;max-width:480px;width:100%;margin:auto;
+  box-shadow:0 30px 60px rgba(0,0,0,.6);}
+.rules-title{font-size:22px;font-weight:900;color:var(--logo-col);letter-spacing:3px;
+  text-align:center;margin-bottom:4px;}
+.rules-sub{text-align:center;color:var(--logo-sub);font-size:11px;letter-spacing:3px;margin-bottom:20px;}
+.rules-section{margin-bottom:18px;}
+.rules-section-title{font-size:11px;font-weight:700;letter-spacing:3px;
+  color:var(--section-lbl);text-transform:uppercase;margin-bottom:10px;
+  padding-bottom:6px;border-bottom:1px solid var(--border);}
+.rules-text{color:var(--text2);font-size:14px;line-height:1.8;}
+.rules-item{display:flex;gap:10px;margin-bottom:8px;align-items:flex-start;}
+.rules-bullet{color:var(--accent);font-size:16px;flex-shrink:0;margin-top:1px;}
+.rules-close{width:100%;padding:13px;border-radius:10px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,#b8862a,#e8c96a,#b8862a);
+  color:#1a0a00;font-size:15px;font-weight:700;letter-spacing:2px;
+  font-family:Georgia,serif;margin-top:6px;}
+.score-pill{display:inline-block;background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.4);
+  color:#4ade80;border-radius:6px;padding:2px 8px;font-size:12px;font-weight:700;}
+.score-pill.red{background:rgba(248,113,113,.15);border-color:rgba(248,113,113,.4);color:#f87171;}
+
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="theme-fab">
+    <button id="theme-fab-btn" onclick="toggleThemeFab()"><span id="tfab-icon">◐</span> THEME</button>
+    <div id="theme-fab-menu">
+      <div class="tfm-item active" id="tfm-auto"  onclick="setTheme('auto')"><span class="tfm-dot" style="background:linear-gradient(135deg,#0d0d1a 50%,#7c3aed)"></span>Auto<span class="tfm-check">✓</span></div>
+      <div class="tfm-item"        id="tfm-light" onclick="setTheme('light')"><span class="tfm-dot" style="background:linear-gradient(135deg,#eef2fa 50%,#1e4ecf)"></span>Light<span class="tfm-check">✓</span></div>    </div>
+  </div>
+
+  <!-- SETUP SCREEN -->
+  <div id="screen-setup" class="screen active">
+    <div class="suits" id="suits-setup">♠ ♥ ♦ ♣</div>
+    <div class="logo">
+      <h1>KACHUFUL</h1>
+      <p>LIVE SCOREBOARD · 10 ROUNDS</p>
+    </div>
+
+    <div class="glass">
+      <div class="section-label">ROUND ORDER</div>
+      <div class="round-preview" id="round-preview"></div>
+    </div>
+
+    <div class="glass">
+      <div class="count-row">
+        <div class="section-label" style="margin-bottom:0">PLAYERS</div>
+        <div class="count-ctrl">
+          <button class="btn-circ" onclick="changeSlots(-1)">−</button>
+          <span class="count-num" id="slot-count">4</span>
+          <button class="btn-circ" onclick="changeSlots(1)">+</button>
+          <span style="color:var(--text3);font-size:11px">(2–30)</span>
+        </div>
+      </div>
+      <div id="player-inputs"></div>
+    </div>
+
+    <button class="btn-gold" id="start-btn" onclick="startGame()">START GAME →</button>
+    <button onclick="showRules()" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--accent-border);background:var(--accent-dim);color:var(--accent);font-size:14px;font-weight:700;letter-spacing:2px;font-family:Georgia,serif;cursor:pointer;margin-top:10px;">? HOW TO PLAY — RULES &amp; GUIDE</button>
+
+    <div class="divider"><div class="divider-line"></div><span class="divider-star">✦</span><div class="divider-line"></div></div>
+    <div class="credit">Developed by <strong>Mitul Makavana</strong></div>
+    <div class="credit-copy">© <span id="yr-setup"></span> · All rights reserved · This scoring pattern is proprietary and may not be copied or reproduced.</div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="screen-game" class="screen">
+    <div class="sticky-header">
+      <div>
+        <h1>KACHUFUL</h1>
+        <p id="round-counter">ROUND 1 OF 10</p>
+      </div>
+      <div class="hdr-btns">
+        <button class="btn-outline" id="history-btn" onclick="toggleHistory()">HISTORY ▶</button>
+        <button class="btn-outline" onclick="showRules()">? RULES</button>
+        <button class="btn-outline red" onclick="askReset()">↺ RESET</button>
+      </div>
+    </div>
+
+    <div class="round-banner" id="round-banner">
+      <div id="round-badge-lg"></div>
+      <div style="display:flex;gap:5px;align-items:center" id="progress-dots"></div>
+    </div>
+
+    <div class="progress-row" id="progress-bar-row"></div>
+
+    <div style="max-width:680px;margin:0 auto;padding:14px 12px;">
+
+      <!-- STANDINGS -->
+      <div class="glass" style="padding:12px 14px;margin-bottom:12px;">
+        <div class="section-label">STANDINGS</div>
+        <div class="standings" id="standings"></div>
+      </div>
+
+      <!-- BID TRACKER -->
+      <div class="bid-tracker" id="bid-tracker">
+        <div class="bid-tracker-row">
+          <div>
+            <div class="bid-tracker-label">TOTAL PREDICTED BIDS</div>
+            <div class="bid-total-num" id="bid-total-num">0</div>
+            <div class="bid-tracker-sub" id="bid-tracker-sub">0 of 0 entered</div>
+          </div>
+          <div>
+            <div class="tricks-label">TRICKS AVAILABLE</div>
+            <div class="tricks-num" id="tricks-avail">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PHASE PILL -->
+      <div class="phase-pill" id="phase-pill">
+        <span class="phase-dot" id="phase-dot"></span>
+        <span id="phase-text">BIDDING PHASE</span>
+      </div>
+
+      <!-- PLAYER CARDS -->
+      <div class="player-grid" id="player-grid"></div>
+
+      <!-- ACTION BUTTON -->
+      <button class="btn-gold" id="action-btn" onclick="actionClick()">SAVE BIDS →</button>
+
+      <!-- HISTORY TABLE -->
+      <div id="history-section" style="display:none;">
+        <div class="glass">
+          <div class="section-label">FULL SCORECARD</div>
+          <div class="history-scroll" id="history-table"></div>
+        </div>
+      </div>
+
+      <div class="divider"><div class="divider-line"></div><span class="divider-star">✦</span><div class="divider-line"></div></div>
+      <div class="credit">Developed by <strong>Mitul Makavana</strong></div>
+      <div class="credit-copy">© <span id="yr-game"></span> · All rights reserved · This scoring pattern is proprietary and may not be copied or reproduced.</div>
+    </div>
+  </div>
+
+  <!-- FINAL SCREEN -->
+  <div id="screen-final" class="screen">
+    <div class="logo" style="margin-top:20px;">
+      <h1>KACHUFUL</h1>
+    </div>
+    <div class="glass" style="text-align:center;padding-top:28px;">
+      <div style="font-size:52px;margin-bottom:8px;">🏆</div>
+      <div style="font-size:30px;font-weight:700;color:var(--text);letter-spacing:2px;margin-bottom:6px;">GAME OVER</div>
+      <div style="font-size:18px;font-weight:600;color:var(--accent);margin-bottom:24px;" id="winner-text"></div>
+      <div id="final-list" style="text-align:left;"></div>
+      <button class="btn-gold" style="margin-top:16px;" onclick="playAgain()">PLAY AGAIN</button>
+    </div>
+    <div class="divider"><div class="divider-line"></div><span class="divider-star">✦</span><div class="divider-line"></div></div>
+    <div class="credit">Developed by <strong>Mitul Makavana</strong></div>
+    <div class="credit-copy">© <span id="yr-final"></span> · All rights reserved · This scoring pattern is proprietary and may not be copied or reproduced.</div>
+  </div>
+
+  <!-- RESET MODAL -->
+  <div class="modal-overlay" id="modal" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-icon">⚠️</div>
+      <div class="modal-title">Reset Entire Game?</div>
+      <div class="modal-text">All scores will be permanently lost.<br/>This cannot be undone.</div>
+      <button class="btn-danger" onclick="confirmReset()">YES, RESET EVERYTHING</button>
+      <button class="btn-cancel" onclick="cancelReset()">CANCEL — KEEP PLAYING</button>
+      <div class="modal-hint" id="modal-countdown">Auto-cancels in 5s</div>
+    </div>
+  </div>
+
+  <div class="rules-overlay" id="rules-modal" style="display:none;">
+    <div class="rules-box">
+      <div class="rules-title">KACHUFUL</div>
+      <div class="rules-sub">RULES &amp; GUIDE</div>
+      <div class="rules-section">
+        <div class="rules-section-title">About the Game</div>
+        <div class="rules-text">Kachuful (also known as Judgement or Oh Hell) is a trick-taking card game where the challenge is not just winning hands — but accurately predicting how many tricks you will win.</div>
+      </div>
+      <div class="rules-section">
+        <div class="rules-section-title">Round Order &amp; Trump Suits</div>
+        <div class="rules-item"><span class="rules-bullet">♠</span><span class="rules-text"><strong>R1 &amp; R9 — Spades:</strong> Spades are trump</span></div>
+        <div class="rules-item"><span class="rules-bullet">♦</span><span class="rules-text"><strong>R2 &amp; R8 — Diamonds:</strong> Diamonds are trump</span></div>
+        <div class="rules-item"><span class="rules-bullet">♣</span><span class="rules-text"><strong>R3 &amp; R7 — Clubs:</strong> Clubs are trump</span></div>
+        <div class="rules-item"><span class="rules-bullet">♥</span><span class="rules-text"><strong>R4 &amp; R6 — Hearts:</strong> Hearts are trump</span></div>
+        <div class="rules-item"><span class="rules-bullet">🚫</span><span class="rules-text"><strong>R5 &amp; R10 — No Trump:</strong> No trump suit this round</span></div>
+      </div>
+      <div class="rules-section">
+        <div class="rules-section-title">Core Rules</div>
+        <div class="rules-item"><span class="rules-bullet">🎯</span><span class="rules-text"><strong>The Goal:</strong> Win the exact number of tricks you bid. More or fewer = zero points.</span></div>
+        <div class="rules-item"><span class="rules-bullet">🃏</span><span class="rules-text"><strong>The Play:</strong> You must follow the lead suit if you have it. If not, play a trump to win or discard.</span></div>
+        <div class="rules-item"><span class="rules-bullet">👑</span><span class="rules-text"><strong>Trump:</strong> The declared trump suit beats all other suits in that round.</span></div>
+      </div>
+      <div class="rules-section">
+        <div class="rules-section-title">Scoring</div>
+        <div class="rules-item"><span class="rules-bullet">✅</span><span class="rules-text"><strong>Correct bid:</strong> <span class="score-pill">10 + tricks won</span> &nbsp;e.g. bid 2, win 2 = <span class="score-pill">12 pts</span></span></div>
+        <div class="rules-item"><span class="rules-bullet">❌</span><span class="rules-text"><strong>Wrong bid:</strong> <span class="score-pill red">0 pts</span> — even one trick off and you score nothing.</span></div>
+      </div>
+      <div class="rules-section">
+        <div class="rules-section-title">Winning Strategy</div>
+        <div class="rules-item"><span class="rules-bullet">💡</span><span class="rules-text"><strong>Bid Low if Unsure:</strong> Conservative bids are safer — 0 is a valid bid!</span></div>
+        <div class="rules-item"><span class="rules-bullet">👁</span><span class="rules-text"><strong>Track Trumps:</strong> Watch how many trumps have been played to know when your cards are safe.</span></div>
+        <div class="rules-item"><span class="rules-bullet">0️⃣</span><span class="rules-text"><strong>Nil Bid:</strong> Bidding zero on a weak hand earns a steady 10 points if you win nothing.</span></div>
+      </div>
+      <button class="rules-close" onclick="hideRules()">GOT IT — LET'S PLAY ✓</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── Constants ── */
+const ROUND_NAMES = ["Spades ♠","Diamonds ♦","Clubs ♣","Hearts ♥","No Trump","Hearts ♥","Clubs ♣","Diamonds ♦","Spades ♠","No Trump"];
+const NUM_ROUNDS  = 10;
+const COLORS = [
+  "#c0392b","#2471a3","#1a7a4a","#d68910","#6c3483",
+  "#117a8b","#b03a2e","#1f618d","#1d6a39","#784212",
+  "#7d6608","#1a5276","#6e2f0c","#4a235a","#0e6655",
+  "#922b21","#154360","#145a32","#512e5f","#0b5345",
+  "#4d2600","#1b2631","#7b241c","#145a32","#512e5f",
+  "#0a3d62","#6f1e51","#1b4f72","#4a235a","#2e4053"
+];
+const ROUND_STYLE = {
+  "Spades ♠":   {accent:"#a855f7",dim:"rgba(168,85,247,.1)", border:"rgba(168,85,247,.35)",label:"#c084fc"},
+  "Diamonds ♦": {accent:"#f87171",dim:"rgba(248,113,113,.1)",border:"rgba(248,113,113,.35)",label:"#fca5a5"},
+  "Clubs ♣":    {accent:"#4ade80",dim:"rgba(74,222,128,.1)", border:"rgba(74,222,128,.35)", label:"#86efac"},
+  "Hearts ♥":   {accent:"#f472b6",dim:"rgba(244,114,182,.1)",border:"rgba(244,114,182,.35)",label:"#fbcfe8"},
+  "No Trump":   {accent:"#fbbf24",dim:"rgba(251,191,36,.1)", border:"rgba(251,191,36,.35)", label:"#fde68a"},
+};
+/* Light theme uses richer, darker pill colours for readability */
+const ROUND_STYLE_LIGHT = {
+  "Spades ♠":   {accent:"#7c3aed",dim:"rgba(124,58,237,.12)", border:"rgba(124,58,237,.5)", label:"#5b21b6"},
+  "Diamonds ♦": {accent:"#dc2626",dim:"rgba(220,38,38,.1)",   border:"rgba(220,38,38,.5)",   label:"#991b1b"},
+  "Clubs ♣":    {accent:"#16a34a",dim:"rgba(22,163,74,.1)",   border:"rgba(22,163,74,.5)",   label:"#14532d"},
+  "Hearts ♥":   {accent:"#db2777",dim:"rgba(219,39,119,.1)",  border:"rgba(219,39,119,.5)",  label:"#9d174d"},
+  "No Trump":   {accent:"#d97706",dim:"rgba(217,119,6,.1)",   border:"rgba(217,119,6,.5)",   label:"#92400e"},
+};
+
+/* ── State ── */
+let state = {
+  screen:"setup", playerNames:["","","",""], numSlots:4,
+  currentRound:0, rounds:[], inputBids:[], inputWon:[],
+  bidPhase:true, showHistory:false,
+  players:[]
+};
+let resetTimer = null;
+let suitTimer  = null;
+let suitIdx    = 0;
+
+/* ── Helpers ── */
+const calcScore = (b,w) => {
+  if(b===""||w==="") return null;
+  return Number(b)===Number(w) ? 10+Number(b) : 0;
+};
+const col = i => COLORS[i % COLORS.length];
+const rs  = name => ROUND_STYLE[name] || ROUND_STYLE["Kali"];
+const yr  = new Date().getFullYear();
+
+/* ── Pill HTML ── */
+function pillHTML(name, num, large){
+  const isLight = document.documentElement.getAttribute('data-theme')==='light';
+  const map = isLight ? ROUND_STYLE_LIGHT : ROUND_STYLE;
+  const r = map[name] || ROUND_STYLE[name] || ROUND_STYLE["Spades ♠"];
+  const lg = large?"lg":"";
+  return `<span class="pill ${lg}" style="background:${r.dim};border-color:${r.border};color:${r.label};font-weight:700;">
+    ${num?`<span class="pill-num">R${num}</span>`:""}${name}
+  </span>`;
+}
+
+/* ── Init ── */
+function init(){
+  applyTheme(_theme);
+  document.getElementById("yr-setup").textContent = yr;
+  document.getElementById("yr-game").textContent  = yr;
+  document.getElementById("yr-final").textContent = yr;
+
+  // Round preview
+  let html = "";
+  ROUND_NAMES.forEach((n,i)=> html += pillHTML(n,i+1,false));
+  document.getElementById("round-preview").innerHTML = html;
+
+  renderPlayerInputs();
+  animateSuits();
+}
+
+/* ── Suit animation ── */
+function animateSuits(){
+  const suits=["♠","♥","♦","♣"];
+  clearInterval(suitTimer);
+  suitTimer = setInterval(()=>{
+    suitIdx=(suitIdx+1)%4;
+    const el=document.getElementById("suits-setup");
+    if(el) el.innerHTML = suits.map((s,i)=>`<span style="opacity:${i===suitIdx?1:.25};transition:opacity .4s">${s}</span>`).join(" ");
+  },1400);
+}
+
+/* ── Player input rendering ── */
+function renderPlayerInputs(){
+  let html="";
+  for(let i=0;i<state.numSlots;i++){
+    html+=`<div class="player-row">
+      <div class="player-strip" style="background:${col(i)}"></div>
+      <input class="text-input" placeholder="Player ${i+1} — Enter Name"
+        value="${(state.playerNames[i]||"").replace(/"/g,'&quot;')}"
+        oninput="setPlayerName(${i},this.value)"/>
+    </div>`;
+  }
+  document.getElementById("player-inputs").innerHTML = html;
+  document.getElementById("slot-count").textContent  = state.numSlots;
+  document.getElementById("start-btn").disabled = state.numSlots < 2;
+}
+
+function setPlayerName(i,v){
+  while(state.playerNames.length<=i) state.playerNames.push("");
+  state.playerNames[i]=v;
+}
+function changeSlots(d){
+  const n=state.numSlots+d;
+  if(n<2||n>30) return;
+  state.numSlots=n;
+  renderPlayerInputs();
+}
+
+/* ── Start game ── */
+function startGame(){
+  state.players = state.playerNames.slice(0,state.numSlots)
+    .map((n,i)=>n.trim()||`Player ${i+1}`);
+  state.rounds=[]; state.currentRound=0;
+  state.inputBids=Array(state.players.length).fill("");
+  state.inputWon =Array(state.players.length).fill("");
+  state.bidPhase=true; state.showHistory=false;
+  showScreen("game");
+  renderGame();
+}
+
+/* ── Totals ── */
+function getTotals(){
+  return state.players.map((_,pi)=>
+    state.rounds.reduce((s,r)=>s+(calcScore(r.bids[pi],r.won[pi])??0),0)
+  );
+}
+
+/* ── Main game render ── */
+function renderGame(){
+  const {players,currentRound,inputBids,inputWon,bidPhase,showHistory} = state;
+  const rname = ROUND_NAMES[currentRound]||"";
+  const r     = rs(rname);
+  const totals= getTotals();
+
+  // Header
+  document.getElementById("round-counter").textContent = `ROUND ${currentRound+1} OF ${NUM_ROUNDS}`;
+  document.getElementById("history-btn").textContent   = showHistory ? "◀ SCORE" : "HISTORY ▶";
+
+  // Round banner
+  document.getElementById("round-banner").style.cssText =
+    `padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid ${r.border};background:linear-gradient(135deg,${r.dim},transparent);`;
+  document.getElementById("round-badge-lg").innerHTML = pillHTML(rname, currentRound+1, true);
+
+  // Progress dots
+  let dotsHTML="";
+  ROUND_NAMES.forEach((name,i)=>{
+    const dot=rs(name);
+    const done=i<currentRound, active=i===currentRound;
+    const bg=active?dot.accent:done?"rgba(255,255,255,.35)":"rgba(255,255,255,.1)";
+    const sh=active?`0 0 8px ${dot.accent},0 0 16px ${dot.accent}40`:"none";
+    dotsHTML+=`<div title="Round ${i+1}: ${name}" style="flex:1;height:6px;border-radius:3px;background:${bg};box-shadow:${sh};transition:all .3s;transform:${active?"scaleY(1.6)":"none"}"></div>`;
+  });
+  document.getElementById("progress-bar-row").innerHTML = dotsHTML;
+  document.getElementById("progress-dots").innerHTML    = dotsHTML;
+
+  // Standings
+  const sorted=[...players.map((p,i)=>({p,i,t:totals[i]}))].sort((a,b)=>b.t-a.t);
+  let standHTML="";
+  sorted.forEach((item,rank)=>{
+    standHTML+=`<div class="standing-item">
+      ${rank===0?`<div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(135deg,#b8862a,#e8c96a,#b8862a);border-radius:0 0 2px 2px;"></div>`:""}
+      <div class="standing-bar" style="background:${col(item.i)}"></div>
+      <div class="standing-name" title="${item.p}">${item.p}</div>
+      <div class="standing-pts ${rank===0?"leader":""}">${item.t}</div>
+    </div>`;
+  });
+  document.getElementById("standings").innerHTML = standHTML;
+
+  // Bid tracker
+  const totalBids = inputBids.reduce((s,b)=>s+(b===""?0:Number(b)),0);
+  const entered   = inputBids.filter(b=>b!=="").length;
+  const tracker   = document.getElementById("bid-tracker");
+  if(bidPhase){
+    tracker.style.display="block";
+    document.getElementById("bid-total-num").textContent  = totalBids;
+    document.getElementById("bid-tracker-sub").textContent= `${entered} of ${players.length} entered`;
+    document.getElementById("tricks-avail").textContent   = players.length;
+  } else {
+    tracker.style.display="none";
+  }
+
+  // Phase pill
+  const pill = document.getElementById("phase-pill");
+  const dot  = document.getElementById("phase-dot");
+  document.getElementById("phase-text").textContent =
+    bidPhase ? "BIDDING PHASE — Enter each player's predicted bid"
+             : "RESULTS PHASE — Enter actual tricks won";
+  pill.className = bidPhase ? "phase-pill phase-bid" : "phase-pill phase-won";
+  dot.className  = bidPhase ? "phase-dot phase-dot-bid" : "phase-dot phase-dot-won";
+
+  // Player cards
+  let cardsHTML="";
+  players.forEach((p,i)=>{
+    const ls  = calcScore(inputBids[i], inputWon[i]);
+    const borderClass = !bidPhase && ls!==null ? (ls>0?"won-correct":"won-wrong") : "";
+    const resultClass = ls===null?"result-pending":ls>0?"result-correct":"result-wrong";
+    const resultText  = ls===null?"—":ls>0?`+${ls} pts`:"✗  0 pts";
+    cardsHTML+=`
+    <div class="player-card ${borderClass}" id="card-${i}">
+      <div class="card-header" style="background:${col(i)}">
+        <span class="card-name">${p}</span>
+        <span class="card-pts">${totals[i]}</span>
+      </div>
+      <div class="card-body">
+        <label class="input-label ${bidPhase?"bid-active":"bid-locked"}">${bidPhase?"✏ BID":"🔒 BID"}</label>
+        <input type="number" min="0" id="bid-${i}"
+          class="num-input ${bidPhase?"active-bid":"locked-bid"}"
+          value="${inputBids[i]}" placeholder="?"
+          ${!bidPhase?"readonly":""}
+          oninput="setBid(${i},this.value)"/>
+        <div style="margin-top:8px;">
+          <label class="input-label ${!bidPhase?"won-active":"won-locked"}">${!bidPhase?"✏ WON":"— WON"}</label>
+          <input type="number" min="0" id="won-${i}"
+            class="num-input ${!bidPhase?"active-won":"locked-won"}"
+            value="${inputWon[i]}" placeholder="${bidPhase?"—":"?"}"
+            ${bidPhase?"readonly":""}
+            oninput="setWon(${i},this.value)"/>
+        </div>
+      </div>
+      ${!bidPhase?`<div class="card-result ${resultClass}">${resultText}</div>`:""}
+    </div>`;
+  });
+  document.getElementById("player-grid").innerHTML = cardsHTML;
+
+  // Action button
+  const btn = document.getElementById("action-btn");
+  if(bidPhase){
+    const canSave = inputBids.every(b=>b!=="");
+    btn.textContent = "SAVE BIDS & LOCK IN →";
+    btn.className   = canSave ? "btn-gold btn-save-ready" : "btn-gold";
+    btn.disabled    = !canSave;
+  } else {
+    const canLock = inputWon.every(w=>w!=="");
+    btn.textContent = currentRound+1<NUM_ROUNDS
+      ? `LOCK ROUND ${currentRound+1} · ${rname} →`
+      : "FINISH GAME 🏆";
+    btn.className   = "btn-gold";
+    btn.disabled    = !canLock;
+  }
+
+  // History
+  const histSection = document.getElementById("history-section");
+  const gameSection = document.getElementById("player-grid").parentElement;
+  if(showHistory){
+    histSection.style.display="block";
+    document.getElementById("player-grid").style.display="none";
+    document.getElementById("action-btn").style.display="none";
+    document.getElementById("bid-tracker").style.display="none";
+    document.getElementById("phase-pill").style.display="none";
+    document.getElementById("standings").parentElement.parentElement.style.display="block";
+    renderHistory(totals);
+  } else {
+    histSection.style.display="none";
+    document.getElementById("player-grid").style.display="grid";
+    document.getElementById("action-btn").style.display="block";
+    document.getElementById("phase-pill").style.display="inline-flex";
+    if(bidPhase) document.getElementById("bid-tracker").style.display="block";
+  }
+}
+
+/* ── History ── */
+function renderHistory(totals){
+  const {players,rounds} = state;
+  let html=`<table><thead><tr><th style="text-align:left;padding-left:4px;">ROUND</th>`;
+  players.forEach((p,i)=> html+=`<th><span style="color:${col(i)}">●</span> ${p}</th>`);
+  html+=`</tr></thead><tbody>`;
+  rounds.forEach((r,ri)=>{
+    html+=`<tr><td class="td-round">${pillHTML(ROUND_NAMES[ri],ri+1,false)}</td>`;
+    players.forEach((_,pi)=>{
+      const sc=calcScore(r.bids[pi],r.won[pi]);
+      html+=`<td><span class="score-sub">${r.bids[pi]}→${r.won[pi]}</span>
+        <span class="${sc>0?"score-green":"score-red"}">${sc??"-"}</span></td>`;
+    });
+    html+=`</tr>`;
+  });
+  html+=`<tr class="total-row"><td class="td-round total-label">TOTAL</td>`;
+  totals.forEach(t=> html+=`<td class="total-pts">${t}</td>`);
+  html+=`</tr></tbody></table>`;
+  document.getElementById("history-table").innerHTML=html;
+}
+
+/* ── Input handlers ── */
+function setBid(i,v){
+  state.inputBids[i]=v;
+  // update bid total live
+  const totalBids=state.inputBids.reduce((s,b)=>s+(b===""?0:Number(b)),0);
+  const entered=state.inputBids.filter(b=>b!=="").length;
+  document.getElementById("bid-total-num").textContent=totalBids;
+  document.getElementById("bid-tracker-sub").textContent=`${entered} of ${state.players.length} entered`;
+  // update action button
+  const canSave=state.inputBids.every(b=>b!=="");
+  const btn=document.getElementById("action-btn");
+  btn.disabled=!canSave;
+  btn.className=canSave?"btn-gold btn-save-ready":"btn-gold";
+}
+
+function setWon(i,v){
+  state.inputWon[i]=v;
+  const totals=getTotals();
+  // update card result footer live
+  const ls=calcScore(state.inputBids[i],v);
+  const card=document.getElementById(`card-${i}`);
+  if(card){
+    let footer=card.querySelector(".card-result");
+    if(!footer){
+      footer=document.createElement("div");
+      footer.className="card-result";
+      card.appendChild(footer);
+    }
+    footer.className="card-result "+(ls===null?"result-pending":ls>0?"result-correct":"result-wrong");
+    footer.textContent=ls===null?"—":ls>0?`+${ls} pts`:"✗  0 pts";
+    card.className="player-card "+(ls===null?"":ls>0?"won-correct":"won-wrong");
+    // update pts badge
+    card.querySelector(".card-pts").textContent = totals[i];
+  }
+  // update action button
+  const canLock=state.inputWon.every(w=>w!=="");
+  const btn=document.getElementById("action-btn");
+  btn.disabled=!canLock;
+}
+
+/* ── Actions ── */
+function actionClick(){
+  if(state.bidPhase){
+    state.bidPhase=false;
+    renderGame();
+  } else {
+    lockRound();
+  }
+}
+
+function lockRound(){
+  state.rounds.push({bids:[...state.inputBids],won:[...state.inputWon]});
+  if(state.currentRound+1<NUM_ROUNDS){
+    state.currentRound++;
+    state.inputBids=Array(state.players.length).fill("");
+    state.inputWon =Array(state.players.length).fill("");
+    state.bidPhase=true;
+    renderGame();
+  } else {
+    showFinal();
+  }
+}
+
+function toggleHistory(){
+  state.showHistory=!state.showHistory;
+  renderGame();
+}
+
+/* ── Final screen ── */
+function showFinal(){
+  const totals=getTotals();
+  const ranked=[...state.players.map((n,i)=>({n,s:totals[i],i}))].sort((a,b)=>b.s-a.s);
+  const medals=["🥇","🥈","🥉"];
+  document.getElementById("winner-text").textContent=`${ranked[0].n} wins!`;
+  let html="";
+  ranked.forEach((p,ri)=>{
+    html+=`<div class="final-rank ${ri===0?"first":""}">
+      <span class="rank-medal">${medals[ri]||`#${ri+1}`}</span>
+      <div class="rank-bar" style="background:${col(p.i)}"></div>
+      <span class="rank-name">${p.n}</span>
+      <span class="rank-pts ${ri===0?"gold":"silver"}">${p.s}</span>
+      <span class="rank-unit">pts</span>
+    </div>`;
+  });
+  document.getElementById("final-list").innerHTML=html;
+  showScreen("final");
+}
+
+function playAgain(){
+  state.playerNames=["","","",""]; state.numSlots=4;
+  state.rounds=[]; state.currentRound=0;
+  state.bidPhase=true; state.showHistory=false;
+  renderPlayerInputs();
+  showScreen("setup");
+}
+
+/* ── Reset ── */
+function askReset(){
+  document.getElementById("modal").style.display="flex";
+  let t=5;
+  document.getElementById("modal-countdown").textContent=`Auto-cancels in ${t}s`;
+  clearInterval(resetTimer);
+  resetTimer=setInterval(()=>{
+    t--;
+    document.getElementById("modal-countdown").textContent=`Auto-cancels in ${t}s`;
+    if(t<=0){clearInterval(resetTimer);cancelReset();}
+  },1000);
+}
+function cancelReset(){
+  clearInterval(resetTimer);
+  document.getElementById("modal").style.display="none";
+}
+function confirmReset(){
+  clearInterval(resetTimer);
+  document.getElementById("modal").style.display="none";
+  state.playerNames=["","","",""]; state.numSlots=4;
+  state.rounds=[]; state.currentRound=0;
+  state.inputBids=[]; state.inputWon=[];
+  state.bidPhase=true; state.showHistory=false;
+  renderPlayerInputs();
+  showScreen("setup");
+}
+
+/* ── Screen switcher ── */
+function showScreen(name){
+  state.screen=name;
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById("screen-"+name).classList.add("active");
+}
+
+
+/* ── Theme ── */
+let _theme='auto';
+try{_theme=localStorage.getItem('kf-theme')||'auto';}catch(e){}
+function applyTheme(t){
+  _theme=t;
+  try{localStorage.setItem('kf-theme',t);}catch(e){}
+  document.documentElement.setAttribute('data-theme',t==='auto'?'':t);
+  ['auto','light'].forEach(n=>{
+    const el=document.getElementById('tfm-'+n);
+    if(el) el.classList.toggle('active',n===t);
+  });
+  const icons={auto:'◐',light:'☀'};
+  const fi=document.getElementById('tfab-icon');
+  if(fi) fi.textContent=icons[t]||'◐';
+  // Re-render round preview pills with correct theme colours
+  const rp=document.getElementById('round-preview');
+  if(rp){ let h=''; ROUND_NAMES.forEach((n,i)=>h+=pillHTML(n,i+1,false)); rp.innerHTML=h; }
+  // Re-render game pills if on game screen
+  if(state && state.screen==='game') renderGame();
+}
+function toggleThemeFab(){
+  const m=document.getElementById('theme-fab-menu');
+  if(m) m.classList.toggle('open');
+}
+function setTheme(t){
+  applyTheme(t);
+  const m=document.getElementById('theme-fab-menu');
+  if(m) m.classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  const fab=document.getElementById('theme-fab');
+  if(fab&&!fab.contains(e.target)){
+    const m=document.getElementById('theme-fab-menu');
+    if(m) m.classList.remove('open');
+  }
+});
+
+/* ── Rules ── */
+function showRules(){
+  document.getElementById('rules-modal').style.display='flex';
+  document.body.style.overflow='hidden';
+}
+function hideRules(){
+  document.getElementById('rules-modal').style.display='none';
+  document.body.style.overflow='';
+}
+/* ── Boot ── */
+init();
+</script>
+</body>
+</html>
